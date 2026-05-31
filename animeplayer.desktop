@@ -1,0 +1,16 @@
+[Desktop Entry]
+Categories=AudioVideo;
+Comment=Anime Player
+Exec=/home/kykyiiikuh/.opt/AnimePlayer/AnimePlayer-x86_64.AppImage %F
+Icon=/home/kykyiiikuh/.opt/AnimePlayer/icon.png
+Path=/home/kykyiiikuh/.opt/AnimePlayer
+Name=Anime Player
+NoDisplay=false
+PrefersNonDefaultGPU=false
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+X-KDE-SubstituteUID=false
+X-KDE-Username=
+StartupWMClass=python3
