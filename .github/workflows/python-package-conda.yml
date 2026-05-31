@@ -50,23 +50,9 @@ jobs:
           Copy-Item $dll.FullName libmpv-2.dll
         shell: pwsh
 
-      - name: Convert icon to .ico (if needed)
-        run: |
-          if (Test-Path icon.png) {
-            if (-not (Test-Path icon.ico)) {
-              python -c "
-          from PIL import Image
-          img = Image.open('icon.png')
-          img.save('icon.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])
-          " 2>$null || echo "Pillow not available, skipping icon conversion"
-            }
-          }
-        shell: pwsh
-
       - name: Build with PyInstaller
         run: |
           $iconArg = ""
-          if (Test-Path icon.ico) { $iconArg = "--icon=icon.ico" }
 
           pyinstaller `
             --onefile `
