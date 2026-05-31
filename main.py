@@ -1,9 +1,11 @@
 import sys,os
+import io
+
 if sys.stdout is None:
-    sys.stdout = open(os.devnull, "w")
+    sys.stdout = io.StringIO()
 
 if sys.stderr is None:
-    sys.stderr = open(os.devnull, "w")
+    sys.stderr = io.StringIO()
 
 os.environ["QT_WAYLAND_DISABLE_WINDOWDECORATION"] = "1"
 os.environ["QT_QPA_PLATFORM"] = "xcb"
