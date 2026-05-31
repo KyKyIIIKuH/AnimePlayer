@@ -30,25 +30,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
-
+      
       - name: Download mpv shared library
         run: |
-          # Download mpv shared build and extract mpv-2.dll
-          $mpvUrl = "https://sourceforge.net/projects/mpv-player-windows/files/64bit/mpv-x86_64-20260531-git-13a3e3a.7z/download"
-          Invoke-WebRequest -Uri $mpvUrl -OutFile mpv-x86_64-20260531-git-13a3e3a.7z
-
-          # Extract 7z using 7-Zip (pre-installed on Windows runner)
-          & "C:\Program Files\7-Zip\7z.exe" x mpv-x86_64-20260531-git-13a3e3a.7z -ompv-dev
-
-          # Copy the dll to project root
-          Copy-Item mpv-dev\mpv-2.dll -Destination . -ErrorAction SilentlyContinue
-          if (-not (Test-Path mpv-2.dll)) {
-            # Try alternative name
-            Get-ChildItem mpv-dev -Filter "*.dll" -Recurse | Select-Object -First 1 | Copy-Item -Destination mpv-2.dll
+          $mpvUrl = "https://netcologne.dl.sourceforge.net/project/mpv-player-windows/64bit/mpv-x86_64-20260531-git-13a3e3a.7z"
+      
+          Invoke-WebRequest -Uri $mpvUrl -OutFile mpv.7z
+      
+          & "C:\Program Files\7-Zip\7z.exe" x mpv.7z -ompv
+      
+          $dll = Get-ChildItem mpv -Recurse -Filter "mpv-2.dll" | Select-Object -First 1
+          if ($dll) {
+            Copy-Item $dll.FullName -Destination mpv-2.dll
+          } else {
+            throw "mpv-2.dll not found after extraction"
           }
-
-          Write-Host "Downloaded mpv DLL:"
-          Get-ChildItem mpv-2.dll -ErrorAction SilentlyContinue
+      
+          Write-Host "mpv ready"
         shell: pwsh
 
       - name: Convert icon to .ico (if needed)
