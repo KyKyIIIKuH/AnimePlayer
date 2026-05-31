@@ -1,4 +1,5 @@
 # AnimePlayer
+![logo](icon.png)
 
 Плеер для просмотра аниме с интеграцией shikimori.io и автоматическим пропуском OP/ED.
 
