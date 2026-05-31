@@ -39,12 +39,12 @@ jobs:
       
           Expand-Archive mpv.zip -DestinationPath mpv
       
-          $dll = Get-ChildItem mpv -Recurse -Filter "mpv-2.dll" | Select-Object -First 1
+          $dll = Get-ChildItem mpv -Recurse -Filter "libmpv-2.dll" | Select-Object -First 1
           if (-not $dll) {
-            throw "mpv-2.dll not found"
+            throw "libmpv-2.dll not found"
           }
       
-          Copy-Item $dll.FullName mpv-2.dll
+          Copy-Item $dll.FullName libmpv-2.dll
         shell: pwsh
 
       - name: Convert icon to .ico (if needed)
