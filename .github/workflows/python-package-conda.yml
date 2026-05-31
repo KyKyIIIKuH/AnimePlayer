@@ -70,7 +70,6 @@ jobs:
             "--hidden-import", "oauth_server",
             "--hidden-import", "oauth_manager",
             "--hidden-import", "aiomisc",
-            "--hidden-import", "aiomisc.aiohttp",
             "--collect-all", "PySide6",
             "main.py"
           )
