@@ -1,0 +1,110 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Download mpv shared library
+        run: |
+          # Download mpv shared build and extract mpv-2.dll
+          $mpvUrl = "https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20240629-git-97b081f.7z/download"
+          Invoke-WebRequest -Uri $mpvUrl -OutFile mpv-dev.7z
+
+          # Extract 7z using 7-Zip (pre-installed on Windows runner)
+          & "C:\Program Files\7-Zip\7z.exe" x mpv-dev.7z -ompv-dev
+
+          # Copy the dll to project root
+          Copy-Item mpv-dev\mpv-2.dll -Destination . -ErrorAction SilentlyContinue
+          if (-not (Test-Path mpv-2.dll)) {
+            # Try alternative name
+            Get-ChildItem mpv-dev -Filter "*.dll" -Recurse | Select-Object -First 1 | Copy-Item -Destination mpv-2.dll
+          }
+
+          Write-Host "Downloaded mpv DLL:"
+          Get-ChildItem mpv-2.dll -ErrorAction SilentlyContinue
+        shell: pwsh
+
+      - name: Convert icon to .ico (if needed)
+        run: |
+          if (Test-Path icon.png) {
+            if (-not (Test-Path icon.ico)) {
+              python -c "
+          from PIL import Image
+          img = Image.open('icon.png')
+          img.save('icon.ico', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])
+          " 2>$null || echo "Pillow not available, skipping icon conversion"
+            }
+          }
+        shell: pwsh
+
+      - name: Build with PyInstaller
+        run: |
+          $iconArg = ""
+          if (Test-Path icon.ico) { $iconArg = "--icon=icon.ico" }
+
+          pyinstaller `
+            --onefile `
+            --windowed `
+            --name AnimePlayer `
+            $iconArg `
+            --add-data "icon.png;." `
+            --add-binary "mpv-2.dll;." `
+            --hidden-import oauth_server `
+            --hidden-import oauth_manager `
+            --hidden-import aiomisc `
+            --hidden-import aiomisc.aiohttp `
+            --collect-all PySide6 `
+            main.py
+        shell: pwsh
+
+      - name: Copy mpv-2.dll to dist (in case it wasn't bundled)
+        run: |
+          if (Test-Path dist\AnimePlayer.exe) {
+            Copy-Item mpv-2.dll dist\ -ErrorAction SilentlyContinue
+          }
+        shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnimePlayer-Windows
+          path: |
+            dist/AnimePlayer.exe
+            dist/mpv-2.dll
+          if-no-files-found: warn
+
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/AnimePlayer.exe
+            dist/mpv-2.dll
+          generate_release_notes: true
