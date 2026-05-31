@@ -1,0 +1,15 @@
+.env
+install.sh
+venv/
+__pycache__/
+*.pyc
+playback_state.json
+git_menu.sh
+log.txt
+folder_history.json
+*.png
+.kilo
+*.AppImage
+AppDir
+wheelhouse
+build/
