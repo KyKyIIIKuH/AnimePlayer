@@ -3,34 +3,8 @@
 # Получаем путь до текущего скрипта
 path="$(dirname "$(realpath "$0")")"
 
-# Папка с AppImage файлами (путь на уровень выше)
-appimage_dir="$(realpath "$path/../PythonAppImage")"
-
-# Получаем список AppImage файлов вручную и извлекаем только имена файлов для отображения
-mapfile -t appimages < <(find "$appimage_dir" -maxdepth 1 -type f -iname "*.AppImage")
-
-# Проверяем, есть ли файлы в папке
-if [ ${#appimages[@]} -eq 0 ]; then
-    echo "Нет файлов AppImage в папке $appimage_dir."
-    exit 1
-fi
-
-# Выводим список файлов для выбора (только имена файлов)
-echo "Выберите файл AppImage:"
-select appimage_file in "${appimages[@]}"; do
-    if [ -n "$appimage_file" ]; then
-        chmod +x $appimage_file
-        # Извлекаем только имя файла
-        selected_file=$(basename "$appimage_file")
-        echo "Вы выбрали: $selected_file"
-        break
-    else
-        echo "Неверный выбор. Пожалуйста, выберите номер из списка."
-    fi
-done
-
 # Получаем полный путь к выбранному файлу
-selected_path="$appimage_dir/$selected_file"
+selected_path="$path/python3.11.8-cp311-cp311-manylinux_2_28_x86_64.AppImage"
 
 # Проверяем, существует ли папка build
 if [ -d "$path/build" ]; then
