@@ -1,5 +1,10 @@
-import sys
-import os
+import sys,os
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
+
 os.environ["QT_WAYLAND_DISABLE_WINDOWDECORATION"] = "1"
 os.environ["QT_QPA_PLATFORM"] = "xcb"
 import re
@@ -34,6 +39,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSignalBlocker, QEvent
 from PySide6.QtGui import QIcon, QAction
 import mpv
+
+logging.basicConfig(level=logging.INFO)
 
 # Получаем путь к самому AppImage файлу
 def get_appimage_path():
