@@ -95,7 +95,7 @@ jobs:
 
       - name: Create Release (on tag)
         id: create_release
-        uses: comnoco/create-release@v2
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
