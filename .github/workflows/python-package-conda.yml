@@ -51,23 +51,24 @@ jobs:
         shell: pwsh
 
       - name: Build with PyInstaller
+        shell: pwsh
         run: |
           $iconArg = ""
-
-          pyinstaller `
-            --onefile `
-            --windowed `
-            --name AnimePlayer `
+      
+          if (Test-Path icon.ico) {
+            $iconArg = "--icon=icon.ico"
+          }
+      
+          pyinstaller --onefile --windowed --name AnimePlayer `
             $iconArg `
             --add-data "icon.png;." `
-            --add-binary "mpv-2.dll;." `
+            --add-binary "libmpv-2.dll;." `
             --hidden-import oauth_server `
             --hidden-import oauth_manager `
             --hidden-import aiomisc `
             --hidden-import aiomisc.aiohttp `
             --collect-all PySide6 `
             main.py
-        shell: pwsh
 
       - name: Copy mpv-2.dll to dist (in case it wasn't bundled)
         run: |
