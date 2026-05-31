@@ -18,9 +18,8 @@
 
 ## Разработка
 
-1. Запустите `install.sh` для создания виртуального окружения и установки зависимостей
-2. Настройте файл `.env`, указав ваш `SHIKIMORI_TOKEN`
-3. Запустите `AnimePlayer.sh` для запуска плеера
+1. Настройте файл `.env`, указав ваш `SHIKIMORI_TOKEN`
+2. Запустите `AnimePlayer.sh` для запуска плеера
 
 build_appimage.sh - Собирает AppImage, для этого нужен appimagetool-*.AppImage
 
