@@ -1455,6 +1455,9 @@ class Player(QMainWindow):
 			return
 
 		if self.duration > 0:
+			# Update play/pause button state
+			self._update_play_button()
+			
 			t = self.position
 			l = self.duration
 
