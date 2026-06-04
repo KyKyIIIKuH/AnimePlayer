@@ -38,7 +38,7 @@ build_appimage.sh - Собирает AppImage, для этого нужен appi
 
 ## Технические детали
 
-- **UI**: PySide6
+- **UI**: PyQt6
 - **Видеоплеер**: mpv (python-mpv)
 - **API**: Shikimori API (информация о пользователе, поиск аниме, user rates), Anilibria API (таймкоды OP/ED)
 - **Хранение состояния**: `playback_state.json`
