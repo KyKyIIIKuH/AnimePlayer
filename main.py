@@ -932,7 +932,7 @@ class Player(QMainWindow):
 		from PyQt6.QtWidgets import QMessageBox
 		QMessageBox.about(
 			self, "About Anime Player",
-			"Anime Player v1.0\n\n"
+			"Anime Player v1.2\n\n"
 			"A VLC-style anime video player with Shikimori integration.\n"
 			"Built with PyQt6 + python-mpv."
 		)
