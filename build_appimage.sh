@@ -4,7 +4,7 @@
 path="$(dirname "$(realpath "$0")")"
 
 # Получаем полный путь к выбранному файлу
-selected_path="$path/python3.11.8-cp311-cp311-manylinux_2_28_x86_64.AppImage"
+selected_path="$path/python3.13.7-cp313-cp313-manylinux_2_28_x86_64.appimage"
 
 # Проверяем, существует ли папка build
 if [ -d "$path/build" ]; then
@@ -24,10 +24,10 @@ cd $path/build/squashfs-root
 
 # Установите ваши библиотеки
 echo "Установка зависимостей из requirements.txt..."
-./usr/bin/python3.11 -m pip install -r "$path/requirements.txt"
+./usr/bin/python3.13 -m pip install -r "$path/requirements.txt"
 
 # Удалите старый метафайл или обновите его
-rm ./usr/share/metainfo/python3.11.8.appdata.xml
+rm ./usr/share/metainfo/python3.13.7.appdata.xml
 
 # Создайте новый для вашего приложения
 cat > ./usr/share/metainfo/animeplayer.appdata.xml << 'EOF'
@@ -55,23 +55,23 @@ if [ -n "${APPIMAGE}" ]; then
 fi
 
 # Находим Python
-PYTHON_BIN="${HERE}/opt/python3.11/bin/python3.11"
+PYTHON_BIN="${HERE}/opt/python3.13/bin/python3.13"
 
 # Определяем правильный PYTHONHOME на основе расположения Python
 PYTHON_BIN_DIR="$(dirname "${PYTHON_BIN}")"
 PYTHON_HOME="$(dirname "${PYTHON_BIN_DIR}")"
 
 export PYTHONHOME="${PYTHON_HOME}"
-export PYTHONPATH="${PYTHON_HOME}/lib/python3.11:${PYTHON_HOME}/lib/python3.11/lib-dynload:${HERE}/usr/src"
+export PYTHONPATH="${PYTHON_HOME}/lib/python3.13:${PYTHON_HOME}/lib/python3.13/lib-dynload:${HERE}/usr/src"
 
 # Проверяем существование encodings модуля
-if [ ! -f "${PYTHON_HOME}/lib/python3.11/encodings/__init__.py" ]; then
-    echo "Error: encodings module not found at ${PYTHON_HOME}/lib/python3.11/encodings/"
+if [ ! -f "${PYTHON_HOME}/lib/python3.13/encodings/__init__.py" ]; then
+    echo "Error: encodings module not found at ${PYTHON_HOME}/lib/python3.13/encodings/"
     echo "Trying alternative path..."
 
     # Альтернативный путь
     export PYTHONHOME="${HERE}/usr"
-    export PYTHONPATH="${HERE}/usr/lib/python3.11:${HERE}/usr/lib/python3.11/lib-dynload:${HERE}/usr/src"
+    export PYTHONPATH="${HERE}/usr/lib/python3.13:${HERE}/usr/lib/python3.13/lib-dynload:${HERE}/usr/src"
 fi
 
 export SSL_CERT_FILE="${HERE}/opt/_internal/certs.pem"
@@ -95,3 +95,5 @@ cp "$path/icon.png" ./python.png
 cd $path
 
 $path/appimagetool-x86_64.AppImage $path/build/squashfs-root $path/build/AnimePlayer-x86_64.AppImage
+
+echo "Success"
