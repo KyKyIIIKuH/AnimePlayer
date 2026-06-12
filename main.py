@@ -1,5 +1,7 @@
 import sys
 import os
+from core.utils import pathname
+sys.path.insert(0, pathname)  # Добавляем путь к корневой папке в sys.path
 import io
 
 if sys.stdout is None:
@@ -46,35 +48,6 @@ import mpv
 
 logging.basicConfig(level=logging.INFO)
 
-# Получаем путь к самому AppImage файлу
-def get_appimage_path():
-	# Проверяем, запущены ли мы как AppImage
-	appimage = os.environ.get('APPIMAGE')
-	if appimage:
-		# Возвращаем директорию, где находится AppImage
-		return os.path.dirname(appimage)
-	
-	# Проверяем другой способ - переменная OWD (Original Working Directory)
-	owd = os.environ.get('OWD')
-	if owd:
-		return owd
-
-	# Fallback: обычный путь
-	if getattr(sys, 'frozen', False):
-		return os.path.dirname(sys.executable)
-	elif __file__:
-		return os.path.dirname(__file__)
-
-# Определяем pyinstaller
-pyinstaller = False
-try:
-	sys._MEIPASS
-	pyinstaller = True
-except Exception:
-	pass
-
-# Получаем путь к исходной директории с AppImage
-pathname = get_appimage_path()
 print(f"Original AppImage directory: {pathname}")
 
 # ======================
@@ -370,6 +343,77 @@ class AnimeSearchWorker(QThread):
 			self.result.emit(data)
 		except Exception as e:
 			print(f"Anime search error for '{self.query}': {e}")
+			self.result.emit({"error": str(e)})
+
+# ======================
+# USER RATE ENSURE WORKER
+# ======================
+class UserRateEnsureWorker(QThread):
+	"""Background thread to check and create user rate on Shikimori if not exists."""
+	result = Signal(dict)
+
+	def __init__(self, user_id, anime_id, token):
+		super().__init__()
+		self.user_id = user_id
+		self.anime_id = anime_id
+		self.token = token
+
+	async def _ensure_user_rate(self):
+		global SHIKIMORI_TOKEN
+		async with aiohttp.ClientSession() as session:
+			headers = {
+				"User-Agent": "AnimePlayer",
+				"Authorization": f"Bearer {self.token or SHIKIMORI_TOKEN}",
+				"Content-Type": "application/json"
+			}
+
+			# 1. Проверяем наличие записи
+			url_check = f"https://shikimori.io/api/v2/user_rates?user_id={self.user_id}&target_id={self.anime_id}&target_type=Anime"
+
+			async with session.get(url_check, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+				if response.status == 401:
+					is_refreshed, new_token_data = await check_and_refresh_on_401(response, None)
+					if is_refreshed and new_token_data:
+						self.token = new_token_data["access_token"]
+						SHIKIMORI_TOKEN = new_token_data["access_token"]
+						return await self._ensure_user_rate()
+					else:
+						return {"error": "401 Unauthorized - token invalid or expired"}
+				response.raise_for_status()
+				data = await response.json()
+
+			# Если запись уже есть, возвращаем её
+			if data and len(data) > 0:
+				return data[0]
+
+			# 2. Если записи нет, создаем её
+			url_create = "https://shikimori.io/api/v2/user_rates"
+			payload = {
+				"user_rate": {
+					"status": "planned",
+					"target_id": self.anime_id,
+					"target_type": "Anime",
+					"user_id": self.user_id
+				}
+			}
+
+			async with session.post(url_create, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=10)) as response:
+				if response.status == 401:
+					is_refreshed, new_token_data = await check_and_refresh_on_401(response, None)
+					if is_refreshed and new_token_data:
+						self.token = new_token_data["access_token"]
+						SHIKIMORI_TOKEN = new_token_data["access_token"]
+						return await self._ensure_user_rate()
+					else:
+						return {"error": "401 Unauthorized - token invalid or expired"}
+				response.raise_for_status()
+				return await response.json()
+
+	def run(self):
+		try:
+			data = asyncio.run(self._ensure_user_rate())
+			self.result.emit(data)
+		except Exception as e:
 			self.result.emit({"error": str(e)})
 
 # ======================
@@ -1078,7 +1122,7 @@ class Player(QMainWindow):
 
 	def update_user_rate_if_needed(self):
 		"""Send episode progress to Shikimori if anime and user info available."""
-		if not (self.anime_id and self.user_id and self.user_rate):
+		if not (self.anime_id and self.user_id):
 			return
 
 		# Only increment if episode has progressed
@@ -1087,6 +1131,36 @@ class Player(QMainWindow):
 
 		self.last_sent_episode = self.current_episode
 
+		if self.user_rate:
+			self._send_user_rate_increment()
+		else:
+			self._ensure_user_rate_first()
+
+	def _ensure_user_rate_first(self):
+		"""Check if user rate exists, create if not, then increment."""
+		self.ensure_rate_worker = UserRateEnsureWorker(
+			self.user_id,
+			self.anime_id,
+			SHIKIMORI_TOKEN
+		)
+		self._workers.add(self.ensure_rate_worker)
+		self.ensure_rate_worker.finished.connect(self.ensure_rate_worker.deleteLater)
+		self.ensure_rate_worker.finished.connect(lambda w=self.ensure_rate_worker: self._workers.discard(w))
+		self.ensure_rate_worker.result.connect(self.on_user_rate_ensured)
+		self.ensure_rate_worker.start()
+
+	def on_user_rate_ensured(self, data):
+		"""Handle response from ensuring user rate."""
+		if "error" in data:
+			logging.error(f"Failed to ensure user rate: {data.get('error')}")
+			return
+
+		self.user_rate = data.get("id")
+		logging.info(f"User rate ensured, ID: {self.user_rate}")
+		self._send_user_rate_increment()
+
+	def _send_user_rate_increment(self):
+		"""Send increment request to Shikimori."""
 		self.rate_worker = UserRateWorker(
 			self.user_id,
 			self.anime_id,
@@ -1097,8 +1171,15 @@ class Player(QMainWindow):
 		self._workers.add(self.rate_worker)
 		self.rate_worker.finished.connect(self.rate_worker.deleteLater)
 		self.rate_worker.finished.connect(lambda w=self.rate_worker: self._workers.discard(w))
-		self.rate_worker.result.connect(lambda d: None)
+		self.rate_worker.result.connect(self.on_user_rate_updated)
 		self.rate_worker.start()
+
+	def on_user_rate_updated(self, data):
+		"""Handle user rate update response."""
+		if "error" in data:
+			logging.error(f"User rate update error: {data.get('error')}")
+		else:
+			logging.info(f"User rate updated successfully")
 
 	def load_user(self):
 		"""Fetch and display current user information."""
