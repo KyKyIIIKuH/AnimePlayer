@@ -1,39 +1,12 @@
+import os, sys
+from core.utils import pathname
+sys.path.insert(0, pathname)  # Добавляем путь к корневой папке в sys.path
 import asyncio
 import aiohttp
-import os, sys
 import logging
 from datetime import datetime, time
 from dotenv import load_dotenv
 
-# Получаем путь к самому AppImage файлу
-def get_appimage_path():
-    # Проверяем, запущены ли мы как AppImage
-    appimage = os.environ.get('APPIMAGE')
-    if appimage:
-        # Возвращаем директорию, где находится AppImage
-        return os.path.dirname(appimage)
-
-    # Проверяем другой способ - переменная OWD (Original Working Directory)
-    owd = os.environ.get('OWD')
-    if owd:
-        return owd
-
-    # Fallback: обычный путь
-    if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    elif __file__:
-        return os.path.dirname(__file__)
-
-# Определяем pyinstaller
-pyinstaller = False
-try:
-    sys._MEIPASS
-    pyinstaller = True
-except Exception:
-    pass
-
-# Получаем путь к исходной директории с AppImage
-pathname = get_appimage_path()
 print(f"Original AppImage directory2: {pathname}")
 
 load_dotenv(f"{pathname}/.env")
