@@ -13,9 +13,10 @@ if sys.stdout is None:
 if sys.stderr is None:
     sys.stderr = io.StringIO()
 
-# Qt environment variables for Wayland/X11 compatibility
-os.environ["QT_WAYLAND_DISABLE_WINDOWDECORATION"] = "1"
-os.environ["QT_QPA_PLATFORM"] = "xcb"
+if sys.platform == "linux":
+    # Qt environment variables for Wayland/X11 compatibility
+    os.environ["QT_WAYLAND_DISABLE_WINDOWDECORATION"] = "1"
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 import aiomisc
 from app.entrypoint import main
