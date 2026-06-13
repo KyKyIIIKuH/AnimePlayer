@@ -1,5 +1,5 @@
 """Main application window for anime video playback — VLC-style UI."""
-import os
+import os, sys
 import time
 import logging
 import json
@@ -10,9 +10,14 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, QSignalBlocker, QEvent
 from PyQt6.QtGui import QIcon, QAction
-import mpv
 
 from app.core.utils import pathname
+
+if sys.platform == "win32":
+	os.add_dll_directory(pathname)
+
+import mpv
+
 from app.core import auth
 from app.utils.state_manager import (
 	load_state, save_state, load_folder_history,
@@ -154,6 +159,12 @@ class Player(QMainWindow):
 		# ===== BOTTOM CONTROLS (directly in main_layout) =====
 		self.bottom_controls = QWidget()
 		self.bottom_controls.setObjectName("bottomControls")
+		self.bottom_controls.setStyleSheet("""
+			QWidget#bottomControls {
+				background-color: #2d2d2d;
+				border-top: 1px solid #444;
+			}
+		""")
 		bottom_layout = QVBoxLayout(self.bottom_controls)
 		bottom_layout.setContentsMargins(0, 0, 0, 0)
 		bottom_layout.setSpacing(0)
