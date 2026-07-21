@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 	QPushButton, QFileDialog, QSlider, QLabel, QCheckBox, QComboBox,
 	QMenuBar, QMenu, QMainWindow, QStatusBar, QFrame, QMessageBox
 )
-from PyQt6.QtCore import Qt, QTimer, QSignalBlocker, QEvent
+from PyQt6.QtCore import Qt, QTimer, QSignalBlocker, QEvent, pyqtSignal
 from PyQt6.QtGui import QIcon, QAction
 
 from app.core.utils import pathname
@@ -31,6 +31,8 @@ from app.workers.user_rate import UserRateEnsureWorker, UserRateWorker
 
 class Player(QMainWindow):
 	"""Main application window for anime video playback — VLC-style UI."""
+	nextEpisodeRequested = pyqtSignal()
+
 	def __init__(self):
 		super().__init__()
 		self.setWindowIcon(QIcon(f"{pathname}/icon.png"))
@@ -85,6 +87,9 @@ class Player(QMainWindow):
 
 		# Track all workers for proper cleanup on exit
 		self._workers = set()
+
+		# Connect cross-thread signal: mpv callbacks emit this, Qt delivers in GUI thread
+		self.nextEpisodeRequested.connect(self.next, Qt.ConnectionType.QueuedConnection)
 
 		# ===== SKIP SETTINGS =====
 		self.skip_op_enabled = skip_state
@@ -810,15 +815,17 @@ class Player(QMainWindow):
 		# Observer for video end (EOF reached)
 		@self.player.property_observer('eof-reached')
 		def eof_observer(_name, value):
-			if value:
+			if value and not getattr(self, '_next_queued', False):
+				self._next_queued = True
 				print(f"Видео завершено: {os.path.basename(self.current_file)}")
-				self.next()
+				self.nextEpisodeRequested.emit()
 
 		# Event callback for end-file event
 		@self.player.event_callback("end-file")
 		def end(event):
-			if getattr(event, "reason", " ") == "eof":
-				self.next()
+			if getattr(event, "reason", " ") == "eof" and not getattr(self, '_next_queued', False):
+				self._next_queued = True
+				self.nextEpisodeRequested.emit()
 
 	# ======================
 	# STATE SAVE
@@ -919,6 +926,7 @@ class Player(QMainWindow):
 
 		# Extract episode number from filename
 		self.current_episode = get_episode(self.current_file)
+		self.episode_label.setText(f"EP: {self.current_episode}")
 
 		# Search for anime info
 		self.search_anime(self.current_file)
@@ -934,6 +942,7 @@ class Player(QMainWindow):
 
 	def next(self):
 		"""Play next episode in playlist."""
+		self._next_queued = False
 		# Делаем проверку, если файл просмотрен менее чем на 90%, не сохраняем прогресс и не отправляем на Шики,
 		# а просто запускаем следующий эпизод. Если же просмотрен более чем на 90%, сохраняем прогресс,
 		# отправляем на Шики и запускаем следующий эпизод.
